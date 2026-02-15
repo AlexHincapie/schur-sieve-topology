@@ -3,7 +3,7 @@ SchurSieve: A computational framework for evaluating prime constellations
 via the combinatorics of planar networks and symmetric functions.
 
 Reference: Lindstrom-Gessel-Viennot Lemma applied to the Prime Sieve.
-Author: [Your Name/Thesis]
+Author: [Dane Alexander Hincapie Arango/Grupo: Innovación en Matemáticas y Nuevas Tecnologías para la Educación (GNOMON)/ITM Medellin]
 License: MIT / Academic Use
 """
 

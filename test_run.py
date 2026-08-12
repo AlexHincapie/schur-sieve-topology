@@ -1,52 +1,31 @@
 """
-Validation script for SchurSieve.
-Generates a local prime sequence and verifies the Jacobi-Trudi 
-determinant for twin and sexy prime configurations.
+Validation script for SchurSieve (Analytical Model).
+Verifies the Jacobi-Trudi determinant for twin and sexy prime 
+configurations at macroscopic scales using asymptotic continuous computation.
 """
 
-import os
 from schur_sieve import SchurSieve
 
-def generate_sample_primes(n=1000):
-    """Generates the first n primes to a temporary file for testing."""
-    primes = []
-    chk = 2
-    while len(primes) < n:
-        for d in range(2, int(chk**0.5) + 1):
-            if chk % d == 0:
-                break
-        else:
-            primes.append(chk)
-        chk += 1
-    
-    with open("primes_sample.txt", "w") as f:
-        for p in primes:
-            f.write(f"{p}\n")
-    return "primes_sample.txt"
-
 def run_test():
-    print("--- Starting SchurSieve Integrity Test ---")
-    
-    # 1. Setup sample data
-    filename = generate_sample_primes(5000)
-    print(f"[TEST] Sample primes generated: {filename}")
+    print("--- Starting SchurSieve Integrity Test (O(1) Analytical Mode) ---")
     
     try:
-        # 2. Initialize Sieve
-        sieve = SchurSieve(data_source=filename, n_limit=5000)
+        # 1. Initialize Sieve (No file dependencies)
+        sieve = SchurSieve()
         
-        # 3. Compute Basis
+        # 2. Compute Basis analytically for a macroscopic limit (e.g., N = 10^15)
         # Degree 20 is sufficient for standard constellations
-        sieve.compute_basis(max_degree=20)
-        print("[TEST] Symmetric function basis computed.")
+        n_macroscopic = 1e15
+        sieve.compute_basis_analytical(max_degree=20, N_limit=n_macroscopic)
+        print(f"[TEST] Symmetric function basis computed for N = {n_macroscopic:.0e}.")
         
-        # 4. Define Topologies
+        # 3. Define Topologies
         # Twin Primes (Gap 2)
         twin_cfg = ([4, 4, 1], [2, 1, 0])
         # Sexy Primes (Gap 6)
         sexy_cfg = ([8, 8, 1], [2, 1, 0])
         
-        # 5. Execute Comparison
+        # 4. Execute Comparison
         results = sieve.compare_topologies(config_a=twin_cfg, config_b=sexy_cfg)
         
         print("\n--- Numerical Results ---")
@@ -54,7 +33,7 @@ def run_test():
         print(f"Sexy Capacity (S_b): {results['capacity_numerator']:.6e}")
         print(f"Stability Ratio (Chi): {results['chi_ratio']:.6f}")
         
-        # 6. Verification Logic
+        # 5. Verification Logic
         if results['capacity_denominator'] > results['capacity_numerator']:
             print("\n[SUCCESS] Test passed: Twin topology shows higher structural stability.")
         else:
@@ -62,11 +41,6 @@ def run_test():
             
     except Exception as e:
         print(f"\n[ERROR] Test failed: {e}")
-    finally:
-        # Cleanup
-        if os.path.exists(filename):
-            os.remove(filename)
-            print("\n[TEST] Temporary files removed.")
 
 if __name__ == "__main__":
     run_test()

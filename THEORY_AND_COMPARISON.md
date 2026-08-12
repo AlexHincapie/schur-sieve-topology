@@ -27,7 +27,11 @@ Previously, the evaluation of the Schur Capacity relied on discrete prime enumer
 
 ### Continuous Analytical Approximation
 By replacing discrete data ingestion with a continuous asymptotic approximation, the network's transition matrix is now populated analytically. The fundamental weights are derived using Mertens' Second Theorem:
-$$ \sum_{p \le N} \frac{1}{p} \approx \ln(\ln(N)) + M $$
+
+$$ 
+\sum_{p \le N} \frac{1}{p} \approx \ln(\ln(N)) + M 
+$$
+
 *(Where $M$ is the Meissel-Mertens constant).*
 
 This circumvents the $O(V^3)$ memory explosion of classical matrix combinatorics, allowing the Jacobi-Trudi determinants to be resolved for macroscopic limits (e.g., $N = 10^{15}$) in constant time.

@@ -8,73 +8,72 @@ License: MIT / Academic Use
 """
 
 import numpy as np
-import pandas as pd
 from typing import List, Tuple, Dict, Union, Optional
 
 class SchurSieve:
     """
     Implements a sieve theoretic model based on the geometry of planar networks.
     
-    The class maps the sequence of prime numbers P = {p_1, ..., p_N} to a 
-    set of elementary symmetric weights, constructing a transition matrix 
+    The class maps the asymptotic distribution of prime numbers up to a macroscopic 
+    limit N to a set of elementary symmetric weights, constructing a transition matrix 
     whose minors correspond to skew Schur functions s_{lambda/mu}.
     """
 
-    def __init__(self, data_source: str, n_limit: int) -> None:
+    def __init__(self) -> None:
         """
-        Initializes the topological network over the field of the first N primes.
-
-        :param data_source: Path to the flat file containing the prime sequence.
-        :param n_limit: The cardinality N of the prime set to be processed.
-        :raises FileNotFoundError: If the data source is inaccessible.
+        Initializes the topological network.
+        Data ingestion via CSV has been removed in favor of asymptotic limits.
         """
-        self._primes: np.ndarray = self._load_data(data_source, n_limit)
         self._h_basis: np.ndarray = np.array([]) 
         self._degree: int = 0
         
-    def _load_data(self, path: str, limit: int) -> np.ndarray:
+    def compute_basis_analytical(self, max_degree: int, N_limit: float) -> None:
         """
-        Ingests raw prime data. 
-        Uses Pandas C-engine for high-performance parsing of large datasets (N > 10^7).
-        Expects a flat text file (newline or space separated) without headers.
-        """
-        try:
-            # Assumes whitespace-separated values or single column CSV
-            df = pd.read_csv(path, nrows=limit, header=None, sep=r'\s+')
-            return df[0].values.astype(np.float64)
-        except Exception as e:
-            raise IOError(f"Data ingestion failure: {e}")
-
-    def compute_basis(self, max_degree: int) -> None:
-        """
-        Computes the complete homogeneous symmetric functions h_k via 
-        Newton identities.
-        
-        Let p_k = sum(1/p_i^k). The basis {h_k} is generated recursively:
-        n * h_n = sum_{k=1}^n (p_k * h_{n-k}).
-        
-        :param max_degree: The maximum weight of the partitions to be evaluated.
+        Computes the complete homogeneous symmetric functions h_k using 
+        asymptotic limits to bypass the N = 10^15 memory barrier.
+        Strictly starts from prime 3.
         """
         if max_degree <= 0:
             raise ValueError("Degree must be a positive integer.")
             
-        # Precompute power sums p_k for k in [1, max_degree]
-        # Inversion of primes: betas = 1/p
-        betas = np.reciprocal(self._primes)
+        p_sums = np.zeros(max_degree, dtype=np.float64)
         
-        # p_sums[k] corresponds to p_{k+1}
-        p_sums = [np.sum(np.power(betas, k)) for k in range(1, max_degree + 1)]
+        # 1. Cálculo Analítico para k = 1 (Segundo Teorema de Mertens)
+        MERTENS_CONST = 0.26149721284764278
+        p_sums[0] = np.log(np.log(N_limit)) + MERTENS_CONST - 0.5
         
+        # 2. Cálculo convergente para k >= 2
+        base_primes = self._sieve_base_primes(105000) 
+        base_primes = base_primes[base_primes >= 3]
+        
+        betas = np.reciprocal(base_primes.astype(np.float64))
+        
+        for k in range(2, max_degree + 1):
+            p_sums[k-1] = np.sum(np.power(betas, k))
+            
+        # 3. Identidades de Newton
         h = [1.0] # h_0 = 1
-        
         for n in range(1, max_degree + 1):
-            # Newton Identity application
-            # term: p_k * h_{n-k}
             term_sum = sum(p_sums[k-1] * h[n-k] for k in range(1, n+1))
             h.append(term_sum / n)
             
         self._h_basis = np.array(h)
         self._degree = max_degree
+
+    def _sieve_base_primes(self, limit: int) -> np.ndarray:
+        """
+        Generador nativo hiper-ligero (Criba de Eratóstenes) solo para 
+        la cola de convergencia local.
+        """
+        sieve = np.ones(limit // 3 + (limit % 6 == 2), dtype=bool)
+        for i in range(1, int(limit**0.5) // 3 + 1):
+            if sieve[i]:
+                k = 3 * i + 1 | 1
+                sieve[k * k // 3::2 * k] = False
+                sieve[k * (k - 2 * (i & 1) + 4) // 3::2 * k] = False
+                
+        base = np.r_[2, 3, ((3 * np.nonzero(sieve)[0][1:] + 1) | 1)]
+        return base
 
     def _construct_jacobi_trudi(self, lam: List[int], mu: List[int]) -> np.ndarray:
         """
